@@ -6,7 +6,7 @@ defmodule WebsocketTest do
   end
 
   test "handshake request can send" do
-    { response, _status, _headers, _body } = Websocket.handshake
+    response = Websocket.handshake
     assert response == :ok
   end
 end

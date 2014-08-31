@@ -1,15 +1,25 @@
 defmodule Websocket do
   def handshake do
-    url = to_char_list(to_string("http://localhost:8080/"))
-    header_list = ['Connection': 'Upgrade',
-                   'Upgrade': 'websocket',
-                   'Sec-WebSocket-Key': 'change-it-later',
-                   'Origin': 'http://localhost/',
-                   'Sec-WebSocket-Protocol': 'change-it-later',
-                   'Sec-WebSocket-Version': '13']
-    headers = Enum.map header_list, fn({k,v}) -> { to_char_list(k), to_char_list(v) } end
+    address = String.to_char_list("localhost")
+    port = String.to_integer("8080")
+    origin = "http://localhost/"
+    key = :base64.encode("some websocket key")
 
-    :ibrowse.send_req(url, headers, :get)
+    { :ok, socket } = :gen_tcp.connect(address, port, [], :infinity)
+
+    handshake_message = [
+      "GET / HTTP/1.1", "\r\n",
+      "Host: #{address}:#{port}", "\r\n",
+      "Origin: #{origin}", "\r\n",
+      "Upgrade: websocket", "\r\n",
+      "Connection: Upgrade", "\r\n",
+      "Sec-WebSocket-Key: #{key}", "\r\n",
+      "Sec-WebSocket-Version: 13", "\r\n",
+      "\r\n",
+    ]
+
+    :gen_tcp.send(socket, handshake_message)
   end
+
 
 end
