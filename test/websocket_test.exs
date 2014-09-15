@@ -1,12 +1,19 @@
 defmodule WebsocketTest do
   use ExUnit.Case
+  import WebsocketHelpers
 
-  test "the truth" do
-    assert 1 + 1 == 2
-  end
-
+  @doc """
+    [TODO]今はRubyで作ったWebSocketサーバ呼んでいるけどmockにしたい
+  """
   test "handshake request can send" do
-    response = Websocket.handshake
+    { response, _socket } = Websocket.handshake
     assert response == :ok
   end
+
+  test "handshake response should receive" do
+    { _, socket } = Websocket.handshake
+    { response, data } = Websocket.loop_acceptor(socket)
+    assert data == response_template_direct
+  end
+
 end

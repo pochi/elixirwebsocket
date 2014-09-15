@@ -4,7 +4,7 @@ defmodule Websocket.Mixfile do
   def project do
     [app: :websocket,
      version: "0.0.1",
-     elixir: "~> 0.14.3-dev",
+     elixir: "~> 1.1.0-dev",
      deps: deps]
   end
 
@@ -25,6 +25,6 @@ defmodule Websocket.Mixfile do
   #
   # Type `mix help deps` for more examples and options
   defp deps do
-    []
+    [ ]
   end
 end
