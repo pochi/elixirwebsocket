@@ -1,16 +1,66 @@
 defmodule Websocket do
 
+  @doc """
+    [TODO]  パラメータを外出しにする
+  """
   @spec handshake :: tuple
   def handshake do
     address = 'localhost'
     port = 8080
     origin = 'http://localhost/'
-    key = :base64.encode("some websocket key")
+    key = key("some websocket key")
 
+    # :infinityは接続待ちの時間
     { :ok, socket } = :gen_tcp.connect(address, port, [], :infinity)
     socket |> :inet.setopts(active: true, packet: :raw)
+    response = socket |> :gen_tcp.send(handshake_request(address, port, origin, key))
+    { response, socket }
+  end
 
-    handshake_message = [
+  def receive_handshake(client) do
+    # activeモードから変更しないとrecvが呼び出せない
+    # activeモードのままだと { :error, :einval }がかえってくる
+    client |> :inet.setopts(active: false, packet: :http_bin)
+    { :ok, { :http_response, _, status_code, switch_message } } = client |> :gen_tcp.recv(0)
+    http_headers = client |> headers
+    { status_code, switch_message, http_headers }
+  end
+
+  @doc """
+    [TODO]  Framesクラスに移行する
+  """
+  def send(client) do
+    client |> :inet.setopts(active: true, packet: :raw)
+    opcode = [ text: 0x1, binary: 0x2, close: 0x8, ping: 0x9, pong: 0xA ]
+    message = << 0 :: 1, << byte_size("test") :: 7 >> :: bitstring, "test" :: bitstring >>
+    send_message = << 1 :: 1,
+                      0 :: 3,
+                      opcode[:text] :: 4,
+                      message  :: binary >>
+    client |> :gen_tcp.send(send_message)
+  end
+
+  def recv(client) do
+    client |> :inet.setopts(active: false, packet: :raw)
+    client |> :gen_tcp.recv(0) |> Frames.to_frame
+  end
+
+  defp headers(client) do
+    headers([], client)
+  end
+
+  defp headers(http_headers, client) do
+    client |> :inet.setopts(active: false, packet: :http_bin)
+    case client |> :gen_tcp.recv(0) do
+      {:ok, {:http_header, _, name, _, val } } ->
+         http_headers ++ [{name, val}] |> headers(client)
+      {:ok, :http_eoh } ->
+         http_headers
+    end
+  end
+
+  defp handshake_request(address, port, origin, key) do
+    [
       "GET / HTTP/1.1", "\r\n",
       "Host: #{address}:#{port}", "\r\n",
       "Origin: #{origin}", "\r\n",
@@ -20,38 +70,11 @@ defmodule Websocket do
       "Sec-WebSocket-Version: 13", "\r\n",
       "\r\n",
     ]
-
-    response = socket |> :gen_tcp.send(handshake_message)
-    { response, socket }
   end
 
-  def loop_acceptor(client) do
-    # activeモードから変更しないとrecvが呼び出せない
-    # activeモードのままだと { :error, :einval }がかえってくる
-    client |> :inet.setopts(active: false, packet: :http_bin)
-    { :ok, { :http_response, _, status_code, switch_message } } = client |> :gen_tcp.recv(0)
-    http_headers = client |> headers
-    { status_code, switch_message, http_headers }
-  end
-
-  def ping(client) do
-    client |> :inet.setopts(active: true, packet: :raw)
-    response = client |> :gen_tcp.send("pingpingping")
-    { response, client }
-  end
-
-  defp headers(client) do
-    headers([], client)
-  end
-
-  defp headers(http_header, client) do
-    case client |> :gen_tcp.recv(0) do
-      {:ok, {:http_header, _, name, _, val } } ->
-         http_header ++ [{name, val}] |> headers(client)
-      {:ok, :http_eoh } ->
-         http_header
-    end
-
+  @spec key(String.t) :: String.t
+  defp key(value) do
+    :crypto.hash(:sha, value <> "258EAFA5-E914-47DA-95CA-C5AB0DC85B11") |> :base64.encode
   end
 
 end

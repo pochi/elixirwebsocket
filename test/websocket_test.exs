@@ -12,16 +12,17 @@ defmodule WebsocketTest do
 
   test "handshake response should receive" do
     { _, socket } = Websocket.handshake
-    { status_code, data, _ } = Websocket.loop_acceptor(socket)
+    { status_code, data, _ } = Websocket.receive_handshake(socket)
     assert status_code == 101
     assert data == "Switching Protocols"
   end
 
-  test "socket can send ping request" do
+  test "websocket can send request" do
     { _, socket } = Websocket.handshake
-    { _, _, _ } = Websocket.loop_acceptor(socket)
-    { response, _ } = Websocket.ping(socket)
-    assert response == :ok
-  end
+    Websocket.receive_handshake(socket)
+    Websocket.send(socket)
+    data = Websocket.recv(socket)
 
+    assert data == 'test'
+  end
 end
