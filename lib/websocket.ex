@@ -28,12 +28,11 @@ defmodule Websocket do
 
   @doc """
     [TODO]  Frameクラスに移行する
-    [TODO]  Messageはパラメータ化する
   """
-  def send(client) do
+  def send(client, text) do
     client |> :inet.setopts(active: true, packet: :raw)
     opcode = [ text: 0x1, binary: 0x2, close: 0x8, ping: 0x9, pong: 0xA ]
-    message = << 0 :: 1, << byte_size("test") :: 7 >> :: bitstring, "test" :: bitstring >>
+    message = << 0 :: 1, << byte_size(text) :: 7 >> :: bitstring, text :: bitstring >>
     send_message = << 1 :: 1,
                       0 :: 3,
                       opcode[:text] :: 4,
@@ -43,7 +42,7 @@ defmodule Websocket do
 
   def recv(client) do
     client |> :inet.setopts(active: false, packet: :raw)
-    client |> :gen_tcp.recv(0) |> Frames.to_frame
+    client |> :gen_tcp.recv(0) |> Frame.to_frame
   end
 
   defp headers(client) do
