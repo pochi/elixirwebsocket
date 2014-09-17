@@ -1,19 +1,14 @@
 defmodule Websocket do
 
-  @doc """
-    [TODO]  パラメータを外出しにする
-  """
-  @spec handshake :: tuple
-  def handshake do
-    address = 'localhost'
-    port = 8080
-    origin = 'http://localhost/'
+  @spec handshake(address :: String, port :: Integer, path :: String) :: tuple
+  def handshake(address, port, path) do
+    origin = 'http://' ++ address
     key = key("some websocket key")
 
     # :infinityは接続待ちの時間
     { :ok, socket } = :gen_tcp.connect(address, port, [], :infinity)
     socket |> :inet.setopts(active: true, packet: :raw)
-    response = socket |> :gen_tcp.send(handshake_request(address, port, origin, key))
+    response = socket |> :gen_tcp.send(handshake_request(address, port, path, origin, key))
     { response, socket }
   end
 
@@ -59,9 +54,9 @@ defmodule Websocket do
     end
   end
 
-  defp handshake_request(address, port, origin, key) do
+  defp handshake_request(address, port, path, origin, key) do
     [
-      "GET / HTTP/1.1", "\r\n",
+      "GET #{path} HTTP/1.1", "\r\n",
       "Host: #{address}:#{port}", "\r\n",
       "Origin: #{origin}", "\r\n",
       "Upgrade: websocket", "\r\n",
