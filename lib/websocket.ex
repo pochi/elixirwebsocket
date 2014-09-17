@@ -27,7 +27,8 @@ defmodule Websocket do
   end
 
   @doc """
-    [TODO]  Framesクラスに移行する
+    [TODO]  Frameクラスに移行する
+    [TODO]  Messageはパラメータ化する
   """
   def send(client) do
     client |> :inet.setopts(active: true, packet: :raw)

@@ -6,22 +6,23 @@ defmodule WebsocketTest do
     [TODO]今はRubyで作ったWebSocketサーバ呼んでいるけどmockにしたい
   """
   test "handshake request can send" do
-    { response, _socket } = Websocket.handshake
+    { response, _ } = Websocket.handshake
     assert response == :ok
   end
 
   test "handshake response should receive" do
     { _, socket } = Websocket.handshake
-    { status_code, data, _ } = Websocket.receive_handshake(socket)
+    { status_code, data, _ } = socket |> Websocket.receive_handshake
     assert status_code == 101
     assert data == "Switching Protocols"
   end
 
   test "websocket can send request" do
+    message = "test"
     { _, socket } = Websocket.handshake
-    Websocket.receive_handshake(socket)
-    Websocket.send(socket)
-    data = Websocket.recv(socket)
+    socket |> Websocket.receive_handshake
+    socket |> Websocket.send message
+    data = socket |> Websocket.recv
 
     assert data == 'test'
   end
