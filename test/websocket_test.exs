@@ -12,7 +12,7 @@ defmodule WebsocketTest do
 
   test "handshake response should receive" do
     { _, socket } = Websocket.handshake('localhost', 8080, '/')
-    { status_code, data, _ } = socket |> Websocket.receive_handshake
+    { 101, data, _ } = socket |> Websocket.receive_handshake
     assert status_code == 101
     assert data == "Switching Protocols"
   end

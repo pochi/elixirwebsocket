@@ -1,43 +1,52 @@
 defmodule Websocket do
+  import Frame
+  alias __MODULE__, as: W
+
+  def start(websocket_group) do
+    { _, client } = W.handshake(websocket_group)
+    client |> receive_handshake
+    receive do
+      {sender, message} ->
+        IO.puts message
+    end
+  end
+
+  @spec handshake(websocket_group :: WebsocketGroup) :: tuple
+  def handshake(websocket_group) do
+    W.handshake(websocket_group.host, websocket_group.port, websocket_group.path)
+  end
 
   @spec handshake(address :: String, port :: Integer, path :: String) :: tuple
   def handshake(address, port, path) do
     origin = 'http://' ++ address
     key = key("some websocket key")
 
-    # :infinityは接続待ちの時間
+    # :infinity means wait time for connect.
     { :ok, socket } = :gen_tcp.connect(address, port, [], :infinity)
     socket |> :inet.setopts(active: true, packet: :raw)
     response = socket |> :gen_tcp.send(handshake_request(address, port, path, origin, key))
     { response, socket }
   end
 
+  @doc """
+    activeモードから変更しないとrecvが呼び出せない
+    activeモードのままだと { :error, :einval }がかえってくる
+  """
   def receive_handshake(client) do
-    # activeモードから変更しないとrecvが呼び出せない
-    # activeモードのままだと { :error, :einval }がかえってくる
     client |> :inet.setopts(active: false, packet: :http_bin)
     { :ok, { :http_response, _, status_code, switch_message } } = client |> :gen_tcp.recv(0)
     http_headers = client |> headers
     { status_code, switch_message, http_headers }
   end
 
-  @doc """
-    [TODO]  Frameクラスに移行する
-  """
   def send(client, text) do
     client |> :inet.setopts(active: true, packet: :raw)
-    opcode = [ text: 0x1, binary: 0x2, close: 0x8, ping: 0x9, pong: 0xA ]
-    message = << 0 :: 1, << byte_size(text) :: 7 >> :: bitstring, text :: bitstring >>
-    send_message = << 1 :: 1,
-                      0 :: 3,
-                      opcode[:text] :: 4,
-                      message  :: binary >>
-    client |> :gen_tcp.send(send_message)
+    client |> :gen_tcp.send(text_frame(text))
   end
 
   def recv(client) do
     client |> :inet.setopts(active: false, packet: :raw)
-    client |> :gen_tcp.recv(0) |> Frame.to_frame
+    client |> :gen_tcp.recv(0) |> to_frame
   end
 
   defp headers(client) do
@@ -67,7 +76,7 @@ defmodule Websocket do
     ]
   end
 
-  @spec key(String.t) :: String.t
+  @spec key(value :: String) :: String
   defp key(value) do
     :crypto.hash(:sha, value <> "258EAFA5-E914-47DA-95CA-C5AB0DC85B11") |> :base64.encode
   end
